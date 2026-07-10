@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AegisFrames — a native Mac catalog for your RAW library</title>
+<meta name="description" content="A fast, native macOS RAW photo catalog built for removable-media storage and disaster recovery. Now recruiting beta testers.">
+
+<!-- ============================================================
+     SETUP NOTES (delete this comment block before publishing)
+     ------------------------------------------------------------
+     1. FORM: replace  FORMSPREE_ENDPOINT  below with your real
+        Formspree URL (looks like https://formspree.io/f/abcdwxyz).
+        Get it free at formspree.io — create a form, point it at
+        your inbox, paste the endpoint into the <form action="">.
+     2. CONTACT EMAIL: replace  you@example.com  wherever it
+        appears (the footer contact link).
+     3. COSTS: pricing copy is marked with [PRICING PLACEHOLDER]
+        — swap in real numbers once you finalize the model.
+     4. Save this file as  index.html  at the root of your
+        GitHub Pages repo. That's it.
+     ============================================================ -->
+
+<style>
+  :root {
+    color-scheme: dark;      /* prevent light-mode overlay from injecting a pale background */
+    --ink:        #0b0d0f;   /* near-black base */
+    --ink-soft:   #14181c;   /* raised panels */
+    --ridge:      #1e242a;   /* hairline borders */
+    --frost:      #e8ecef;   /* primary text, cold white */
+    --muted:      #8a949c;   /* secondary text */
+    --muted-dim:  #7c868e;   /* tertiary / captions — lightened to clear WCAG AA */
+    --alpine:     #6fb8d4;   /* cold glacial accent */
+    --alpine-hi:  #a4dcef;   /* accent highlight */
+    --amber:      #d9a066;   /* warm counterpoint, used once */
+    --maxw:       1080px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; background: #0b0d0f; }
+
+  body {
+    background: var(--ink);
+    color: var(--frost);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* subtle grain so the black isn't flat */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- type scale ---------- */
+  .display {
+    font-weight: 200;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--alpine);
+    font-weight: 400;
+  }
+  h2.section-title {
+    font-weight: 200;
+    letter-spacing: -0.02em;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    line-height: 1.08;
+  }
+
+  /* ---------- top bar ---------- */
+  header.bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    padding: 26px 0;
+  }
+  .bar-inner { display: flex; align-items: center; justify-content: space-between; }
+  .mark {
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 400; letter-spacing: 0.04em; font-size: 1.05rem;
+  }
+  .mark .glyph {
+    width: 26px; height: 26px; flex: none;
+  }
+  .mark b { font-weight: 500; }
+  .mark span { color: var(--muted); font-weight: 300; }
+  .bar a.nav-cta {
+    font-size: 0.82rem; letter-spacing: 0.04em;
+    color: var(--frost); text-decoration: none;
+    border: 1px solid var(--ridge);
+    padding: 9px 18px; border-radius: 2px;
+    transition: border-color .25s, background .25s;
+  }
+  .bar a.nav-cta:hover { border-color: var(--alpine); background: rgba(111,184,212,0.06); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 140px 0 90px;
+    overflow: hidden;
+  }
+  /* the "frame" signature: a slightly rotated 35mm-style frame drawn in light,
+     framing an alpine gradient — the icon concept, rendered large */
+  .hero-frame {
+    position: absolute;
+    right: -6%;
+    top: 50%;
+    transform: translateY(-50%) rotate(-7deg);
+    width: min(52vw, 620px);
+    aspect-ratio: 3 / 2;
+    z-index: 0;
+    opacity: 0.9;
+  }
+  .hero-frame .glass {
+    position: absolute; inset: 0;
+    border-radius: 4px;
+    background:
+      linear-gradient(170deg,
+        #0f1519 0%,
+        #17303a 34%,
+        #2b5c66 55%,
+        #6fb8d4 78%,
+        #cbe9f2 100%);
+    box-shadow: 0 40px 120px rgba(111,184,212,0.14);
+  }
+  /* alpine ridge silhouette inside the frame */
+  .hero-frame .ridge-line {
+    position: absolute; inset: 0;
+    border-radius: 4px; overflow: hidden;
+  }
+  .hero-frame .ridge-line svg { position: absolute; bottom: 0; width: 100%; height: 62%; }
+  /* the sprocket-hole rails top & bottom, film-frame reference */
+  .hero-frame .rail {
+    position: absolute; left: 3%; right: 3%; height: 7%;
+    display: flex; gap: 4.4%;
+  }
+  .hero-frame .rail.top { top: 4%; }
+  .hero-frame .rail.bot { bottom: 4%; }
+  .hero-frame .rail i {
+    flex: 1; background: rgba(6,9,11,0.62); border-radius: 1px;
+  }
+  .hero-frame .border {
+    position: absolute; inset: 0;
+    border: 1.5px solid rgba(232,236,239,0.5);
+    border-radius: 5px;
+  }
+
+  .hero-content { position: relative; z-index: 2; max-width: 640px; }
+  .hero .eyebrow { display: block; margin-bottom: 26px; }
+  .hero .display { margin-bottom: 26px; }
+  .hero .display .cold { color: var(--frost); }
+  .hero .display .warm {
+    font-style: italic; font-weight: 200;
+    background: linear-gradient(100deg, var(--alpine-hi), var(--alpine));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lede {
+    font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+    color: var(--muted);
+    max-width: 30em;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+  .lede strong { color: var(--frost); font-weight: 400; }
+
+  .hero-cta-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  a.btn-primary {
+    display: inline-block;
+    background: var(--frost); color: var(--ink);
+    text-decoration: none;
+    font-weight: 500; font-size: 0.95rem; letter-spacing: 0.01em;
+    padding: 15px 30px; border-radius: 3px;
+    transition: transform .2s, box-shadow .3s;
+  }
+  a.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 40px rgba(164,220,239,0.22);
+  }
+  .cta-note { font-size: 0.82rem; color: var(--muted-dim); }
+
+  /* ---------- marquee stat strip ---------- */
+  .strip {
+    border-top: 1px solid var(--ridge);
+    border-bottom: 1px solid var(--ridge);
+    background: var(--ink-soft);
+  }
+  .strip-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .strip-cell {
+    padding: 30px 28px;
+    border-right: 1px solid var(--ridge);
+  }
+  .strip-cell:last-child { border-right: none; }
+  .strip-cell .k {
+    font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--alpine); margin-bottom: 8px;
+  }
+  .strip-cell .v { font-size: 0.98rem; color: var(--muted); font-weight: 300; }
+  .strip-cell .v b { color: var(--frost); font-weight: 400; }
+
+  /* ---------- generic section ---------- */
+  section.block { padding: 110px 0; }
+  .section-head { max-width: 620px; margin-bottom: 66px; }
+  .section-head .eyebrow { display: block; margin-bottom: 18px; }
+  .section-head p.sub { color: var(--muted); margin-top: 20px; font-size: 1.05rem; }
+
+  /* ---------- feature list ---------- */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ridge); border: 1px solid var(--ridge); }
+  .feat {
+    background: var(--ink);
+    padding: 44px 40px;
+    transition: background .3s;
+  }
+  .feat:hover { background: var(--ink-soft); }
+  .feat .fnum {
+    font-size: 0.72rem; letter-spacing: 0.2em; color: var(--muted-dim);
+    margin-bottom: 20px;
+  }
+  .feat h3 {
+    font-weight: 400; font-size: 1.32rem; letter-spacing: -0.01em;
+    margin-bottom: 14px; line-height: 1.2;
+  }
+  .feat h3 .accent { color: var(--alpine); }
+  .feat p { color: var(--muted); font-size: 0.98rem; }
+
+  /* the disaster-recovery feature gets the one warm accent, on purpose */
+  .feat.keystone { position: relative; }
+  .feat.keystone::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(var(--amber), transparent);
+  }
+  .feat.keystone h3 .accent { color: var(--amber); }
+
+  /* ---------- beta / signup ---------- */
+  .signup {
+    background: var(--ink-soft);
+    border-top: 1px solid var(--ridge);
+  }
+  .signup-grid {
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 70px; align-items: center;
+  }
+  .signup .eyebrow { display: block; margin-bottom: 18px; }
+  .signup h2 { margin-bottom: 20px; }
+  .signup p.detail { color: var(--muted); margin-bottom: 14px; }
+  .signup ul.tester {
+    list-style: none; margin: 26px 0 0;
+  }
+  .signup ul.tester li {
+    padding: 12px 0 12px 26px; position: relative;
+    color: var(--muted); border-top: 1px solid var(--ridge);
+    font-size: 0.96rem;
+  }
+  .signup ul.tester li:first-child { border-top: none; }
+  .signup ul.tester li::before {
+    content: ""; position: absolute; left: 0; top: 20px;
+    width: 9px; height: 9px; border: 1.5px solid var(--alpine);
+    border-radius: 1px; transform: rotate(0deg);
+  }
+
+  /* form card */
+  .form-card {
+    background: var(--ink);
+    border: 1px solid var(--ridge);
+    border-radius: 4px;
+    padding: 38px 34px;
+  }
+  .form-card h4 {
+    font-weight: 400; font-size: 1.1rem; margin-bottom: 6px;
+  }
+  .form-card p.fine { font-size: 0.84rem; color: var(--muted-dim); margin-bottom: 26px; }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 0.74rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--ink-soft);
+    border: 1px solid var(--ridge);
+    color: var(--frost);
+    font-family: inherit; font-size: 0.96rem; font-weight: 300;
+    padding: 13px 14px; border-radius: 3px;
+    transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus {
+    outline: none; border-color: var(--alpine);
+  }
+  .field input::placeholder { color: var(--muted-dim); }
+  button.submit {
+    width: 100%; cursor: pointer;
+    background: var(--frost); color: var(--ink);
+    border: none; font-family: inherit;
+    font-weight: 500; font-size: 0.95rem; letter-spacing: 0.01em;
+    padding: 15px; border-radius: 3px; margin-top: 6px;
+    transition: transform .2s, box-shadow .3s;
+  }
+  button.submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 34px rgba(164,220,239,0.2);
+  }
+  .form-status {
+    margin-top: 16px; font-size: 0.88rem; min-height: 1.2em;
+  }
+  .form-status.ok { color: var(--alpine-hi); }
+  .form-status.err { color: var(--amber); }
+
+  /* ---------- pricing whisper ---------- */
+  .pricing {
+    text-align: center;
+    padding: 96px 0;
+    border-top: 1px solid var(--ridge);
+  }
+  .pricing .eyebrow { display: block; margin-bottom: 22px; }
+  .pricing p.line {
+    font-weight: 200; letter-spacing: -0.01em;
+    font-size: clamp(1.4rem, 3vw, 2.1rem);
+    max-width: 20em; margin: 0 auto; line-height: 1.3;
+  }
+  .pricing p.line .ph {
+    color: var(--alpine); border-bottom: 1px dashed var(--muted-dim);
+    padding-bottom: 1px;
+  }
+  .pricing p.foot { color: var(--muted-dim); margin-top: 26px; font-size: 0.9rem; }
+
+  /* ---------- footer ---------- */
+  footer.foot {
+    border-top: 1px solid var(--ridge);
+    padding: 46px 0;
+  }
+  .foot-inner {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 18px;
+  }
+  .foot-inner .mark { font-size: 0.98rem; }
+  .foot-links { display: flex; gap: 26px; }
+  .foot-links a {
+    color: var(--muted); text-decoration: none; font-size: 0.86rem;
+    transition: color .2s;
+  }
+  .foot-links a:hover { color: var(--frost); }
+  .foot-copy { color: var(--muted-dim); font-size: 0.8rem; width: 100%; }
+
+  /* ---------- reveal on scroll ---------- */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    html { scroll-behavior: auto; }
+    a.btn-primary:hover, button.submit:hover { transform: none; }
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 860px) {
+    .hero-frame { opacity: 0.32; right: -20%; width: 90vw; }
+    .signup-grid { grid-template-columns: 1fr; gap: 44px; }
+    .features { grid-template-columns: 1fr; }
+    .strip-grid { grid-template-columns: 1fr; }
+    .strip-cell { border-right: none; border-bottom: 1px solid var(--ridge); }
+    .strip-cell:last-child { border-bottom: none; }
+  }
+  @media (max-width: 520px) {
+    .wrap { padding: 0 20px; }
+    .hero { padding: 120px 0 70px; }
+    .feat { padding: 34px 26px; }
+    .form-card { padding: 30px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="bar">
+  <div class="wrap bar-inner">
+    <div class="mark">
+      <svg class="glyph" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2.5" y="6" width="27" height="20" rx="2" transform="rotate(-6 16 16)" stroke="#6fb8d4" stroke-width="1.5"/>
+        <path d="M8 22 L14 15 L18 19 L23 12 L26 22 Z" fill="#6fb8d4" opacity="0.55" transform="rotate(-6 16 16)"/>
+      </svg>
+      <span><b>Aegis</b>Frames</span>
+    </div>
+    <a href="#join" class="nav-cta">Request beta access</a>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-frame" aria-hidden="true">
+    <div class="glass"></div>
+    <div class="ridge-line">
+      <svg viewBox="0 0 600 250" preserveAspectRatio="none">
+        <path d="M0,250 L0,150 L80,90 L150,140 L230,60 L320,130 L400,70 L480,120 L560,50 L600,95 L600,250 Z"
+              fill="#0b1418" opacity="0.55"/>
+        <path d="M0,250 L0,185 L90,140 L170,180 L260,120 L360,175 L450,130 L540,170 L600,140 L600,250 Z"
+              fill="#081014" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="rail top"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="rail bot"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="border"></div>
+  </div>
+
+  <div class="wrap hero-content">
+    <span class="eyebrow">Now recruiting beta testers</span>
+    <h1 class="display">
+      <span class="cold">Your RAW library,</span><br>
+      <span class="warm">safe and close at hand.</span>
+    </h1>
+    <p class="lede">
+      AegisFrames is a <strong>native macOS catalog</strong> for photographers who want
+      speed without the subscription bloat — built to keep your library on the drive you
+      choose, with <strong>disaster recovery designed in from the start.</strong>
+    </p>
+    <div class="hero-cta-row">
+      <a href="#join" class="btn-primary">Join the beta</a>
+      <span class="cta-note">TestFlight · macOS 14 Sonoma or later</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STAT STRIP ============ -->
+<div class="strip">
+  <div class="wrap">
+    <div class="strip-grid">
+      <div class="strip-cell">
+        <div class="k">Native</div>
+        <div class="v"><b>Built in Swift for macOS.</b> No web wrapper, no Electron — it launches and scrolls like a Mac app should.</div>
+      </div>
+      <div class="strip-cell">
+        <div class="k">Portable</div>
+        <div class="v"><b>Catalog on removable media.</b> Keep your whole library on an external SSD and carry it between machines.</div>
+      </div>
+      <div class="strip-cell">
+        <div class="k">Recoverable</div>
+        <div class="v"><b>Recovery is a feature, not an afterthought.</b> Your originals stay protected, backed up, and rebuildable.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FEATURES ============ -->
+<section class="block">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">What you're testing</span>
+      <h2 class="section-title">A serious catalog that respects your files, your hardware, and your time.</h2>
+      <p class="sub">The beta focuses on the core workflow: bring your RAW files in, organize them fast, and know they're safe. Here's where your feedback matters most.</p>
+    </div>
+
+    <div class="features">
+      <div class="feat reveal">
+        <div class="fnum">01 — SPEED</div>
+        <h3>Fast where it <span class="accent">counts</span></h3>
+        <p>Import, thumbnail, and browse large RAW catalogs without the spinning-beachball tax. A native Mac app tuned for how photographers actually move through a shoot.</p>
+      </div>
+
+      <div class="feat reveal">
+        <div class="fnum">02 — STORAGE</div>
+        <h3>Your library lives <span class="accent">where you want</span></h3>
+        <p>Store the catalog on an external or network drive and pick up on another Mac. Designed for photographers who don't keep everything on the boot volume.</p>
+      </div>
+
+      <div class="feat keystone reveal">
+        <div class="fnum">03 — RESILIENCE</div>
+        <h3>Disaster recovery, <span class="accent">built in</span></h3>
+        <p>RAW files are treated as immutable originals and never edited in place. Backups run to the destinations you choose, so a lost drive doesn't mean a lost archive — and a catalog can be rebuilt from the files themselves.</p>
+      </div>
+
+      <div class="feat reveal">
+        <div class="fnum">04 — OWNERSHIP</div>
+        <h3>No subscription <span class="accent">bloat</span></h3>
+        <p>An affordable Mac-native alternative to the rent-forever model. You'll help shape a tool built to be owned, not endlessly leased.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BETA / SIGNUP ============ -->
+<section class="signup block" id="join">
+  <div class="wrap signup-grid">
+    <div class="reveal">
+      <span class="eyebrow">The beta program</span>
+      <h2 class="section-title">Help shape AegisFrames before it ships.</h2>
+      <p class="detail">
+        The beta runs through TestFlight on macOS 14 (Sonoma) and later. You'll get early
+        builds, a direct line for feedback, and real influence over what the 1.0 becomes.
+      </p>
+      <p class="detail">A good fit if you:</p>
+      <ul class="tester">
+        <li>Shoot RAW and manage a growing library on your own terms</li>
+        <li>Keep photos on external or network storage, not just the internal drive</li>
+        <li>Care about backups, archives, and not losing work</li>
+        <li>Are happy to send candid feedback on rough edges</li>
+      </ul>
+    </div>
+
+    <div class="form-card reveal">
+      <h4>Request beta access</h4>
+      <p class="fine">No spam, no list-selling. Just build announcements and the occasional question.</p>
+
+      <!-- ▼▼ Replace FORMSPREE_ENDPOINT with your real Formspree URL ▼▼ -->
+      <form id="beta-form" action="FORMSPREE_ENDPOINT" method="POST">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" placeholder="Your name" required>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="gear">What do you shoot? (optional)</label>
+          <input type="text" id="gear" name="gear" placeholder="e.g. Fujifilm X-T5, mostly landscapes">
+        </div>
+        <div class="field">
+          <label for="storage">Where does your library live? (optional)</label>
+          <select id="storage" name="storage">
+            <option value="">Select one…</option>
+            <option>Internal drive only</option>
+            <option>External SSD / HDD</option>
+            <option>Network / NAS volume</option>
+            <option>A mix of these</option>
+          </select>
+        </div>
+        <!-- honeypot for bots -->
+        <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+        <button type="submit" class="submit">Request access</button>
+        <div class="form-status" id="form-status" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING WHISPER ============ -->
+<section class="pricing">
+  <div class="wrap">
+    <span class="eyebrow">On pricing</span>
+    <p class="line">
+      AegisFrames will be <span class="ph">affordable</span> — planned as a subscription
+      or a <span class="ph">perpetual license</span>, with perpetual add-ons for new features.
+    </p>
+    <p class="foot">Final pricing is still being set. Beta testers will hear the details first.</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div class="mark">
+      <svg class="glyph" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2.5" y="6" width="27" height="20" rx="2" transform="rotate(-6 16 16)" stroke="#6fb8d4" stroke-width="1.5"/>
+        <path d="M8 22 L14 15 L18 19 L23 12 L26 22 Z" fill="#6fb8d4" opacity="0.55" transform="rotate(-6 16 16)"/>
+      </svg>
+      <span><b>Aegis</b>Frames</span>
+    </div>
+    <div class="foot-links">
+      <a href="#join">Join the beta</a>
+      <!-- ▼ replace with your real contact email ▼ -->
+      <a href="mailto:you@example.com">Contact</a>
+    </div>
+    <div class="foot-copy">© 2026 AegisFrames. A native macOS RAW catalog. Not affiliated with Apple Inc. macOS and TestFlight are trademarks of Apple Inc.</div>
+  </div>
+</footer>
+
+<script>
+  // scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.14 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // form handling — AJAX submit to Formspree so the visitor stays on the page
+  const form = document.getElementById('beta-form');
+  const status = document.getElementById('form-status');
+  form.addEventListener('submit', async (ev) => {
+    // If the endpoint hasn't been configured yet, warn instead of navigating away.
+    if (form.action.indexOf('FORMSPREE_ENDPOINT') !== -1) {
+      ev.preventDefault();
+      status.className = 'form-status err';
+      status.textContent = 'Form not configured yet — add your Formspree endpoint.';
+      return;
+    }
+    ev.preventDefault();
+    status.className = 'form-status';
+    status.textContent = 'Sending…';
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        form.reset();
+        status.className = 'form-status ok';
+        status.textContent = 'You\u2019re on the list — thanks. Watch your inbox for beta builds.';
+      } else {
+        status.className = 'form-status err';
+        status.textContent = 'Something went wrong. Please try again, or email us directly.';
+      }
+    } catch (err) {
+      status.className = 'form-status err';
+      status.textContent = 'Network error. Please try again in a moment.';
+    }
+  });
+</script>
+
+</body>
+</html>
